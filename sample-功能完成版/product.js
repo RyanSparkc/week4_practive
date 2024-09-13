@@ -3,9 +3,6 @@ console.log('product.js');
 // # 使用 vue3 option 來撰寫登入方法
 import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
 
-import pagination from './pagination.js';
-import productModal from './productModal.js';
-
 const app = createApp({
   data() {
     return {
@@ -21,6 +18,7 @@ const app = createApp({
       delProductModal: null,
       file: null,
       sizeCheck: false,
+      localTemProduct:{},
       starArray: [
         {
           id: 1,
@@ -42,7 +40,7 @@ const app = createApp({
           id: 5,
           colorActive: false,
         },
-      ],
+      ]
     };
   },
   methods: {
@@ -59,66 +57,38 @@ const app = createApp({
         });
     },
     getProducts(page = 1) {
-      // 參數預設值
-      console.log('getProducts called with page:', page);
       axios
         .get(`${this.apiUrl}/api/${this.apiPath}/admin/products?page=${page}`)
         .then((res) => {
           // console.log(res.data);
           this.products = res.data.products;
           this.pages = res.data.pagination;
-          console.log(res.data);
+          console.log(this.products);
         })
         .catch((err) => {
           console.log(err);
         });
     },
-    // openModal(state, item) {
-    //   if (state === 'new') {
-    //     this.temProduct = {
-    //       imagesUrl: [],
-    //     };
-    //     this.isNew = true;
-    //     this.$refs.poModal.openModal();
-    //   } else if (state === 'edit') {
-    //     this.temProduct = { ...item };
-    //     this.active(this.temProduct.star); // 繪製星星
-    //     console.log('edit', this.temProduct);
-    //     console.log('starArray', this.starArray);
-    //     if (!Array.isArray(this.temProduct.imagesUrl)) {
-    //       this.temProduct.imagesUrl = [];
-    //     }
-    //     this.isNew = false;
-    //     this.$refs.poModal.openModal();
-    //   } else if (state === 'del') {
-    //     this.temProduct = { ...item };
-    //     this.delProductModal.show();
-    //   }
-    // },
     openModal(state, item) {
       if (state === 'new') {
         this.temProduct = {
           imagesUrl: [],
         };
         this.isNew = true;
-        this.$refs.poModal.openModal();
+        this.productModal.show();
       } else if (state === 'edit') {
-        this.temProduct = JSON.parse(JSON.stringify(item)); // 深拷貝
+        this.temProduct = { ...item };
+        this.localTemProduct = {...item};
         console.log('edit', this.temProduct);
-        console.log('starArray', this.starArray);
         if (!Array.isArray(this.temProduct.imagesUrl)) {
           this.temProduct.imagesUrl = [];
         }
         this.isNew = false;
-        this.$refs.poModal.openModal();
+        this.productModal.show();
       } else if (state === 'del') {
-
         this.temProduct = { ...item };
         this.delProductModal.show();
       }
-    },
-    updateTemProduct(updatedProduct) {
-      this.temProduct = updatedProduct;
     },
     updateProduct() {
       let url = `${this.apiUrl}/api/${this.apiPath}/admin/product/${this.temProduct.id}`;
@@ -130,7 +100,7 @@ const app = createApp({
       axios[http](url, { data: this.temProduct })
         .then((res) => {
           alert(res.data.message);
-          this.$refs.poModal.closeModal();
+          this.productModal.hide();
           this.getProducts();
         })
         .catch((err) => {
@@ -157,56 +127,51 @@ const app = createApp({
         this.temProduct.imagesUrl.push('');
       }
     },
-
-    // 【檢查圖片】: 判斷引入圖片檔是否大於 3 MB。
     uploadCheck(e) {
       this.file = e.target.files[0];
-      // 取得檔案大小並轉換為 KB
+      console.log('files-e', e);
+      console.log('files-size', e.target.files[0].size);
+
       const sizeKB = (e.target.files[0].size / 1024).toFixed(2);
-      // 設定檔案最大為 3 MB
       const maxFileSize = 3 * 1024;
-      if (sizeKB >= maxFileSize) {
+      if(sizeKB >= maxFileSize){
         this.sizeCheck = true;
-      } else {
+      }else{
         this.sizeCheck = false;
       }
     },
-
-    // 【上傳圖片】
-    upload() {
-      const formData = new FormData();
-      formData.append('file-to-upload', this.file);
-
-      axios
-        .post(`${this.apiUrl}/api/${this.apiPath}/admin/upload`, formData)
-        .then((res) => {
+    uploadImg(){
+      const formDate = new FormData();
+      formDate.append('file-to-upload', this.file);
+      axios.post(`${this.apiUrl}/api/${this.apiPath}/admin/upload`, formDate)
+        .then(res => {
           this.temProduct.imageUrl = res.data.imageUrl;
-          alert('圖片上傳成功');
+          alert('圖片上傳成功!')
         })
-        .catch((err) => console.log(err));
+        .catch(err => {
+          console.log(err);
+        })
     },
-    // 【設定變色邏輯】: 依據點擊到的 id 來比對渲染數目。
-    active(num) {
-      this.starArray.forEach((item, idx) => {
-        if (item.id <= num) {
-          this.starArray[idx].colorActive = true;
-        } else {
-          this.starArray[idx].colorActive = false;
-        }
-      });
-      this.temProduct.star = num;
-    },
-    // 【重置】: 回復星級預設值。
-    reset() {
-      this.active(0);
-    },
-    updateStar(id) {
-      this.temProduct.star = id;
-      this.active(id);
+    changeStar(starNum){
+      this.temProduct.star = starNum;
+
+    }
+  },
+  computed: {
+    showStarArray(){
+      return this.starArray.map((star) => ({
+        ...star,
+        colorActive: star.id <= this.temProduct.star
+      }))
     },
   },
   mounted() {
     // openModal
+
+    this.productModal = new bootstrap.Modal(this.$refs.productModal, {
+      keyboard: false,
+      backdrop: false,
+    });
 
     this.delProductModal = new bootstrap.Modal(this.$refs.delProductModal, {
       keyboard: false,
@@ -222,9 +187,5 @@ const app = createApp({
     this.checkAdmin();
   },
 });
-app.component('product-modal', productModal);
-app.component('pagination', pagination);
+
 app.mount('#app');
-
-
-

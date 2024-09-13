@@ -1,79 +1,15 @@
 export default {
-  props: ['temProduct', 'isNew', 'sizeCheck', 'starArray'],
-  emits: [
-    'update:temProduct',
-    'upload',
-    'upload-check',
-    'reset',
-    'update-product',
-  ],
+  props: ['temProduct', 'isNew', 'apiUrl', 'apiPath', 'starArray'],
+  emits: ['changeStar', 'updateProduct'],
   data() {
     return {
       productModal: null,
-      localTemProduct: { ...this.temProduct },
+      file: 0,
+      sizeCheck: false,
     };
   },
-  computed: {
-    localStarArray() {
-      return this.starArray.map((star) => ({
-        ...star,
-        colorActive: star.id <= this.localTemProduct.star,
-      }));
-    },
-  },
-  methods: {
-    openModal() {
-      this.productModal.show();
-    },
-    closeModal() {
-      this.productModal.hide();
-    },
-    handleStar(id) {
-      this.localTemProduct.star = id;
-      this.$emit('update:temProduct', this.localTemProduct);
-    },
-    updateProduct() {
-      this.$emit('update-product');
-    },
-    upload() {
-      this.$emit('upload');
-    },
-    uploadCheck(event) {
-      this.$emit('upload-check', event);
-    },
-    reset() {
-      this.handleStar(0);
-      this.$emit('reset');
-    },
-    addImage() {
-      if (!this.localTemProduct.imagesUrl) {
-        this.localTemProduct.imagesUrl = [''];
-      } else {
-        this.localTemProduct.imagesUrl.push('');
-      }
-      this.$emit('update:temProduct', this.localTemProduct);
-    },
-    removeImage() {
-      this.localTemProduct.imagesUrl.pop();
-      this.$emit('update:temProduct', this.localTemProduct);
-    },
-  },
-  watch: {
-    temProduct: {
-      handler(newValue) {
-        this.localTemProduct = { ...newValue };
-      },
-      deep: true,
-    },
-  },
-  mounted() {
-    this.productModal = new bootstrap.Modal(this.$refs.productModal, {
-      keyboard: false,
-      backdrop: 'static',
-    });
-  },
   template: /*html*/ `
-  <div id="productModal" ref="productModal" class="modal fade" tabindex="-1"
+    <div id="productModal" ref="productModal" class="modal fade" tabindex="-1"
       aria-labelledby="productModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-xl">
         <div class="modal-content border-0">
@@ -90,7 +26,6 @@ export default {
               <div class="col-sm-4">
                 <div class="mb-2">
                   <div class="mb-3">
-                   <pre>{{temProduct}}</pre>
                     <label for="imageUrl" class="form-label">主要圖片網址</label>
                     <input type="text" class="form-control" placeholder="主要圖片連結" v-model="temProduct.imageUrl">
                   </div>
@@ -98,41 +33,28 @@ export default {
                 </div>
                 <div class="mb-3">
                   <div class="input-group mb-2">
-                    <input type="file" class="form-control" accept=".jpg, .jpeg, .png"
-                      @change="uploadCheck($event)">
-                    <button class="btn btn-outline-secondary" type="button"
-                      :class="{'disabled': sizeCheck === true}"
-                      @click="upload">上傳</button>
+                    <input type="file" class="form-control" accept=".jpg, .jpeg, .png" @change="uploadCheck($event)">
+                    <button class="btn btn-outline-secondary" :class="{disabled: sizeCheck}" type="button" @click="uploadImg()">上傳</button>
                   </div>
-                  <div v-if="sizeCheck" class="text-danger">檔案不可大於 3MB !</div>
+                  <div v-if="sizeCheck"  class="text-danger">檔案不可大於 3MB !</div>
                   <div v-else class="text-success">檔案可以上傳 !</div>
                 </div>
                 <h3>新增多圖</h3>
                 <div v-if="Array.isArray(temProduct.imagesUrl)">
                   <div class="mb-3" v-for="(img, key) in temProduct.imagesUrl" :key="key">
                     <div class="mb-2">
-                      <label :for="'imageUrl' + key" class="form-label">圖片網址</label>
+                      <label :for="'imageUrl'+key" class="form-label">圖片網址</label>
                       <input type="text" class="form-control" :id="'imageUrl' + key" v-model="temProduct.imagesUrl[key]" placeholder="圖片連結" >
                     </div>
                     <img class="img-fluid" :src="img" alt="">
                   </div>
-                   <!-- <div v-if="!temProduct.imagesUrl.length || temProduct.imagesUrl.at(-1)">
-                     <button class="btn btn-outline-primary btn-sm d-block w-100" @click="addImage">
-                       新增圖片
-                     </button>
-                   </div>
-                   <div v-else>
-                     <button class="btn btn-outline-danger btn-sm d-block w-100" @click="temProduct.imagesUrl.pop()">
-                       刪除圖片
-                     </button>
-                   </div> -->
-                  <div v-if="!localTemProduct.imagesUrl.length || localTemProduct.imagesUrl[localTemProduct.imagesUrl.length - 1]">
+                  <div v-if="!temProduct.imagesUrl.length || temProduct.imagesUrl.at(-1)">
                     <button class="btn btn-outline-primary btn-sm d-block w-100" @click="addImage">
                       新增圖片
                     </button>
                   </div>
                   <div v-else>
-                    <button class="btn btn-outline-danger btn-sm d-block w-100" @click="removeImage">
+                    <button class="btn btn-outline-danger btn-sm d-block w-100" @click="temProduct.imagesUrl.pop()">
                       刪除圖片
                     </button>
                   </div>
@@ -170,31 +92,15 @@ export default {
                     <label for="price" class="form-label">售價</label>
                     <input id="price" type="number" min="0" class="form-control" placeholder="請輸入售價"  v-model="temProduct.price">
                   </div>
-                </div>
-                <!--
-                <div class="mb-3 col-md-6">
-                  <label for="star" class="form-label">星級評價</label>
-                  <div>
-                    <a href="#" class="star bi bi-star-fill text-secondary fs-3 p-1"
-                    ref="starElement"
-                      v-for="star in starArray" :key="star.id"
-                      :class="{'text-warning': star.colorActive}"
-                      @click="handleStar(star.id)">
-                    </a>
-                    <button type="button" class="btn btn-sm btn-outline-secondary ms-3"
-                      @click="reset">清除</button>
-                  </div>
-                </div> -->
-                <div class="mb-3 col-md-6">
-                  <label for="star" class="form-label">星級評價</label>
-                  <div>
-                    <a href="#" class="star bi bi-star-fill fs-3 p-1"
-                      v-for="star in localStarArray" :key="star.id"
-                      :class="{'text-warning': star.colorActive, 'text-secondary': !star.colorActive}"
-                      @click.prevent="handleStar(star.id)">
-                    </a>
-                    <button type="button" class="btn btn-sm btn-outline-secondary ms-3"
-                      @click="reset">清除</button>
+                  <div class="mb-3 col-md-6">
+                    <pre>temProduct -  {{temProduct}}</pre>
+                    <label for="star" class="form-label">星級評價</label>
+                    <div>
+                      <a href="#" class="star bi bi-star-fill text-secondary fs-3 p-1" ref="starElement"
+                      v-for="star in starArray" :key="star.id" :class="{'text-warning': star.colorActive, 'text-secondary': star.colorActive}" @click.prevent="changeStar(star.id)">
+                      </a>
+                      <button type="button" class="btn btn-sm btn-outline-secondary ms-3" @click="changeStar(0)">清除</button>
+                    </div>
                   </div>
                 </div>
                 <hr>
@@ -228,4 +134,57 @@ export default {
       </div>
     </div>
   `,
+  methods: {
+    openModal() {
+      this.productModal.show();
+    },
+    closeModal() {
+      this.productModal.hide();
+    },
+    uploadCheck(e) {
+      this.file = e.target.files[0];
+      console.log('files-e', e);
+      console.log('files-size', e.target.files[0].size);
+
+      const sizeKB = (e.target.files[0].size / 1024).toFixed(2);
+      const maxFileSize = 3 * 1024;
+      if (sizeKB >= maxFileSize) {
+        this.sizeCheck = true;
+      } else {
+        this.sizeCheck = false;
+      }
+    },
+    uploadImg() {
+      const formDate = new FormData();
+      formDate.append('file-to-upload', this.file);
+      axios
+        .post(`${this.apiUrl}/api/${this.apiPath}/admin/upload`, formDate)
+        .then((res) => {
+          this.temProduct.imageUrl = res.data.imageUrl;
+          alert('圖片上傳成功!');
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    },
+    changeStar(star) {
+      this.$emit('changeStar', star);
+    },
+    addImage() {
+      if (!this.temProduct.imagesUrl) {
+        this.temProduct.imagesUrl = [''];
+      } else {
+        this.temProduct.imagesUrl.push('');
+      }
+    },
+    updateProduct() {
+      this.$emit('updateProduct');
+    },
+  },
+  mounted() {
+    this.productModal = new bootstrap.Modal(this.$refs.productModal, {
+      keyboard: false,
+      backdrop: false,
+    });
+  },
 };

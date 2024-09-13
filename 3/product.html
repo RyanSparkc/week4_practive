@@ -5,14 +5,14 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title># week 4-1</title>
+  <title>4-3</title>
   <link rel='stylesheet'
     href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.2/css/bootstrap.min.css'
     integrity='sha512-b2QcS5SsA8tZodcDtGRELiGv5SaKSk1vDHDaQRda0htPYWZ6046lr3kJ5bAAQdpV2mmA/4v0wQF9MyU6/pDIAg=='
     crossorigin='anonymous' />
-    <!-- Bootstrap icons CDN -->
-    <link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
+  <!-- Bootstrap icons CDN -->
+  <link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
   <style>
     img {
       object-fit: contain;
@@ -79,65 +79,29 @@
           </tr>
         </tbody>
       </table>
-
-      <!-- navigation -->
-      <pagination :pages="pages" @get-products="getProducts"></pagination>
-
+      <!-- pagination -->
+      <pagination
+      :pages="pages"
+      @get-products="getProducts">
+      </pagination>
     </div>
     <!-- Modal -->
-    <!-- <product-modal
-      @update-product="updateProduct"
-      @upload="upload"
-      @upload-check="uploadCheck"
-      @update-star="updateStar"
-      @reset="reset"
-      :tem-product="temProduct"
-      :is-new="isNew"
-      :size-check="sizeCheck"
-      :add-image="addImage"
-      :star-array="starArray"
-      ref="poModal"></product-modal> -->
-      <product-modal
-        v-model:tem-product="temProduct"
-        :is-new="isNew"
-        :size-check="sizeCheck"
-        :star-array="starArray"
-        @update-product="updateProduct"
-        @upload="upload"
-        @upload-check="uploadCheck"
-        @reset="reset" ref="poModal">
-      </product-modal>
+    <product-modal ref="pModal"
+    :api-url="apiUrl"
+    :api-path="apiPath"
+    :tem-product="temProduct"
+    :is-new="isNew"
+    :star-array="starArray"
+    @change-star="changeStar"
+    @update-product="updateProduct">
+  </product-modal>
 
     <!-- delModal -->
-    <div id="delProductModal" ref="delProductModal" class="modal fade" tabindex="-1"
-      aria-labelledby="delProductModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content border-0">
-          <div class="modal-header bg-danger text-white">
-            <h5 id="delProductModalLabel" class="modal-title">
-              <span>刪除產品</span>
-            </h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"
-              aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            是否刪除
-            <strong class="text-danger">{{temProduct.title}}</strong> 商品(刪除後將無法恢復)。
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-              取消
-            </button>
-            <button type="button" class="btn btn-danger" @click="delProduct">
-              確認刪除
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- Modal -->
-
- 
+    <del-modal ref="delModal"
+    :tem-product="temProduct"
+    @del-product="delProduct">
+  </del-modal>
+    <!-- Modal end-->
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/axios@1.1.2/dist/axios.min.js"></script>
